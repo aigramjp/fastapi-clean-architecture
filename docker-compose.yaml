@@ -1,0 +1,66 @@
+version: "3.8"
+
+services:
+  fastapi:
+    image: fastapi:0.0
+    container_name: fastapi
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: uvicorn main:app --reload --host 0.0.0.0 --port ${PORT} 
+    working_dir: /src
+    volumes:
+      - ./src:/src
+    ports:
+      - ${PORT}:${PORT}
+    networks:
+      - db-net
+    env_file:
+      - ./.env
+
+  mongodb:
+    image: mongo:4.2.5
+    container_name: mongodb
+    command: mongod --auth
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${DB_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${DB_PASSWORD}
+      MONGODB_DATA_DIR: /data/db
+      MONGODB_LOG_DIR: /dev/null
+    ports:
+      - ${DB_PORT}:${DB_PORT}
+    volumes:
+      - mongodb:/data/db
+      - mongoconfigdb:/data/configdb
+    networks:
+      - db-net
+
+  mongotestdb:
+    image: mongo:4.2.5
+    container_name: mongotestdb
+    command: mongod --auth
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: test-user
+      MONGO_INITDB_ROOT_PASSWORD: test-password
+      MONGODB_DATA_DIR: /data/db
+      MONGODB_LOG_DIR: /dev/null
+    ports:
+      - 27018:${DB_PORT}
+    networks:
+      - db-net
+
+networks:
+  db-net:
+    name: db-net
+    driver: bridge
+
+volumes:
+  mongodb:
+    name: mongodb
+    driver: local
+  mongoconfigdb:
+    name: mongoconfigdb
+    driver: local
